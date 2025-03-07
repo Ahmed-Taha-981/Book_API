@@ -1,7 +1,5 @@
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
-app.use(express.json());
+const router = express.Router();
 
 let Library = [
   { ID: 1, Title: "Solo Leveling" },
@@ -10,13 +8,21 @@ let Library = [
   { ID: 4, Title: "The Author's POV" },
 ];
 
+const authenticator = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== "Bearer Zewail") {
+    return res.status(401).send("You are not authorized");
+  }
+  next();
+};
 
-app.get('/books', (req, res) => {
+router.use(authenticator);
+
+router.get('/', (req, res) => {
   res.json(Library);
 });
 
-
-app.post('/books', (req, res) => {
+router.post('/add', (req, res) => {
   const { ID, Title } = req.body;
   if (!ID || !Title) {
     return res.send("Both ID and Title are required");
@@ -31,18 +37,7 @@ app.post('/books', (req, res) => {
   res.send(`Book '${newBook.Title}' added`);
 });
 
-app.delete('/books/:ID', (req, res) => {
-  const bookIndex = Library.findIndex(b => b.ID == req.params.ID);
-  if (bookIndex === -1) {
-    return res.send("No Book to delete");
-  }
-  
-  const deletedBook = Library[bookIndex];
-  Library.splice(bookIndex, 1);
-  res.send(`Book '${deletedBook.Title}' deleted`);
-});
-
-app.put('/books/:ID', (req, res) => {
+router.put('/edit/:ID', (req, res) => {
   const book = Library.find(b => b.ID == req.params.ID);
   if (!book) {
     return res.send("Book not found");
@@ -52,6 +47,15 @@ app.put('/books/:ID', (req, res) => {
   res.send(`Book updated: ${book.Title}`);
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/`);
+router.delete('/delete/:ID', (req, res) => {
+  const bookIndex = Library.findIndex(b => b.ID == req.params.ID);
+  if (bookIndex === -1) {
+    return res.send("No Book to delete");
+  }
+
+  const deletedBook = Library[bookIndex];
+  Library.splice(bookIndex, 1);
+  res.send(`Book '${deletedBook.Title}' deleted`);
 });
+
+module.exports = router;
